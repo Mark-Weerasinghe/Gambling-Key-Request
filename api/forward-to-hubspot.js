@@ -3,7 +3,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  const hubspotWebhookUrl = 'https://api-eu1.hubapi.com/automation/v4/webhook-triggers/25851164/YgED4va';
+  const hubspotWebhookUrl = 'https://api-eu1.hubapi.com/automation/v4/webhook-triggers/25851164/KUgGm5b';
 
   try {
     const response = await fetch(hubspotWebhookUrl, {
