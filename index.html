@@ -18,8 +18,7 @@
 
   <!-- OTP Email Modal -->
   <div id="otpModal" style="display:none; position: fixed; top: 0; left: 0;
-    width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); 
-    align-items: center; justify-content: center; z-index: 1000;">
+    width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); align-items: center; justify-content: center; z-index: 1000;">
     <div style="background: white; padding: 2rem; border-radius: 8px; text-align: center; width: 300px;">
         <h3>Verify Email</h3>
         <p>Enter your @onramper.com email</p>
@@ -153,7 +152,7 @@
             form.reset();
             localStorage.removeItem(`formData-${currentOnramp}`);
             Swal.fire('Success', `Request for ${currentOnramp} submitted successfully!`, 'success');
-            document.getElementById("otpModal").style.display = "none";
+            // document.getElementById("otpModal").style.display = "none";
           } else {
             response.json().then(data => {
               Swal.fire('Error', data.error || 'Unknown error', 'error');
@@ -169,6 +168,7 @@
       };
 
       function showOtpPrompt() {
+        document.getElementById("otpModal").style.display = "flex";
         Swal.fire({
           title: 'Enter OTP',
           input: 'text',
