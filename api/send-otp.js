@@ -1,6 +1,7 @@
 export default async function handler(req, res) {
   // Allow CORS for local dev
-  res.setHeader("Access-Control-Allow-Origin", "https://gambling-key-request.vercel.app");
+  // res.setHeader("Access-Control-Allow-Origin", "https://gambling-key-request.vercel.app");
+  res.setHeader("Access-Control-Allow-Origin", "http://127.0.0.1:5500");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
