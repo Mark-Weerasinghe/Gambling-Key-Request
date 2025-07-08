@@ -135,7 +135,7 @@
         localStorage.removeItem(`formData-${onramp}`);
       }
 
-      function sendOtp() {
+       window.sendOtp = function() {
         const email = document.getElementById("otpEmail").value.trim();
         const errorDiv = document.getElementById("otpError");
 
