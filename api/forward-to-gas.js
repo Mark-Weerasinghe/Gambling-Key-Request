@@ -1,17 +1,23 @@
 export default async function handler(req, res) {
-  //res.setHeader("Access-Control-Allow-Origin", "https://gambling-key-request.vercel.app");
-  res.setHeader("Access-Control-Allow-Origin", "http://127.0.0.1:5500");
+   // Enable CORS for your frontend domain
+  res.setHeader("Access-Control-Allow-Origin", "https://gambling-key-request.vercel.app");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
+  // Handle preflight OPTIONS request
   if (req.method === "OPTIONS") {
-    return res.status(200).end(); // Preflight request
+    return res.status(200).end();
+  }
+
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method Not Allowed" });
   }
 
   const payload = req.body;
+  const targetUrl = "https://script.google.com/macros/s/AKfycbx_io7IFLs3RfW09-9wMuN8SsSfXbjwrCJekpatOZwQEtzaAG6784FtZJOjK7xY-OfI0Q/exec";
 
   try {
-    const gasResponse = await fetch("https://script.google.com/macros/s/AKfycbx_io7IFLs3RfW09-9wMuN8SsSfXbjwrCJekpatOZwQEtzaAG6784FtZJOjK7xY-OfI0Q/exec", {
+    const gasResponse = await fetch(targetUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"

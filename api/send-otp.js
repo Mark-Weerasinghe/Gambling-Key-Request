@@ -1,16 +1,12 @@
 export default async function handler(req, res) {
-  // Allow CORS for local dev
-  // res.setHeader("Access-Control-Allow-Origin", "https://gambling-key-request.vercel.app");
-  res.setHeader("Access-Control-Allow-Origin", "http://127.0.0.1:5500");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+ 
+  const proxyUrl = "http://localhost:8080/";
+  const targetUrl = "https://script.google.com/macros/s/AKfycbx_io7IFLs3RfW09-9wMuN8SsSfXbjwrCJekpatOZwQEtzaAG6784FtZJOjK7xY-OfI0Q/exec";
 
-  if (req.method === "OPTIONS") return res.status(200).end();
-
-  const payload = req.body;
+  
 
   try {
-    const gasResponse = await fetch("https://script.google.com/macros/s/AKfycbx_io7IFLs3RfW09-9wMuN8SsSfXbjwrCJekpatOZwQEtzaAG6784FtZJOjK7xY-OfI0Q/exec", {
+    const gasResponse = await fetch(proxyUrl + targetUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"

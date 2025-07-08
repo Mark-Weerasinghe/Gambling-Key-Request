@@ -16,18 +16,18 @@
   <div class="tabs" id="tab-buttons"></div>
   <div id="tab-contents"></div>
 
-    <!-- OTP Email Modal -->
-    <div id="otpModal" style="display:none; position: fixed; top: 0; left: 0;
+  <!-- OTP Email Modal -->
+  <div id="otpModal" style="display:none; position: fixed; top: 0; left: 0;
     width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); 
     align-items: center; justify-content: center; z-index: 1000;">
     <div style="background: white; padding: 2rem; border-radius: 8px; text-align: center; width: 300px;">
         <h3>Verify Email</h3>
         <p>Enter your @onramper.com email</p>
         <input id="otpEmail" type="email" placeholder="you@onramper.com" style="width: 100%; padding: 0.5rem; margin: 0.5rem 0;">
-        <button onclick="sendOtp()" style="padding: 0.5rem 1rem;">Send OTP</button>
+        <button id="sendOtpButton" style="padding: 0.5rem 1rem;">Send OTP</button>
         <div id="otpError" style="color: red; margin-top: 0.5rem;"></div>
     </div>
-    </div>
+  </div>
 
   <script>
     document.addEventListener("DOMContentLoaded", () => {
@@ -76,26 +76,64 @@
         });
       }
 
-        let currentOnramp = null;
-        let currentFormData = null;
+      let currentOnramp = null;
+      let currentFormData = null;
 
       window.sendToWebhook = function (onramp) {
         const form = document.querySelector(".tab-content.active form");
-        const formData = new FormData(form);
+        currentFormData = new FormData(form);
+        currentOnramp = onramp;
+        document.getElementById("otpModal").style.display = "flex";
+      };
+
+      window.clearForm = function (onramp) {
+        const form = document.querySelector(".tab-content.active form");
+        form.reset();
+        localStorage.removeItem(`formData-${onramp}`);
+      }
+
+      window.sendOtp = function () {
+        const email = document.getElementById("otpEmail").value.trim();
+        const errorDiv = document.getElementById("otpError");
+
+        if (!email.endsWith("@onramper.com")) {
+          errorDiv.textContent = "Please use a valid @onramper.com email.";
+          return;
+        }
+
+        const otp = Math.floor(100000 + Math.random() * 900000); // temp fix, move to backend later
+        sessionStorage.setItem("otp", otp);
+        sessionStorage.setItem("email", email);
+
+        fetch("/api/send-otp", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ otp, recipientEmail: email, otpOnly: true })
+        })
+        .then(res => {
+          if (res.ok) {
+            errorDiv.textContent = "";
+            showOtpPrompt();
+          } else {
+            errorDiv.textContent = "Failed to send OTP. Try again.";
+          }
+        })
+        .catch(() => {
+          errorDiv.textContent = "Network error.";
+        });
+      };
+
+      window.proceedWithFormSubmission = function () {
+        const form = document.querySelector(".tab-content.active form");
 
         const payload = {
-          onramp,
-          clientName: formData.get("clientName"),
-          clientType: formData.get("clientType"),
-          clientAddress: formData.get("clientAddress"),
-          clientWebsite: formData.get("clientWebsite"),
-          recipientEmail: "mark.weerasinghe@onramper.com"
+          onramp: currentOnramp,
+          clientName: currentFormData.get("clientName"),
+          clientType: currentFormData.get("clientType"),
+          clientAddress: currentFormData.get("clientAddress"),
+          clientWebsite: currentFormData.get("clientWebsite"),
+          recipientEmail: sessionStorage.getItem("email")
         };
-
-        document.getElementById("otpModal").style.display = "flex";
-
-        /*
-       localStorage.removeItem(`formData-${onramp}`);
 
         Swal.fire({
           title: 'Submitting...',
@@ -113,7 +151,9 @@
         .then(response => {
           if (response.ok) {
             form.reset();
-            Swal.fire('Success', `Request for ${onramp} submitted successfully!`, 'success');
+            localStorage.removeItem(`formData-${currentOnramp}`);
+            Swal.fire('Success', `Request for ${currentOnramp} submitted successfully!`, 'success');
+            document.getElementById("otpModal").style.display = "none";
           } else {
             response.json().then(data => {
               Swal.fire('Error', data.error || 'Unknown error', 'error');
@@ -126,111 +166,29 @@
           console.error("Webhook error:", error);
           Swal.fire('Error', 'An error occurred. Please try again.', 'error');
         });
-        */
       };
 
-      window.clearForm = function (onramp) {
-        const form = document.querySelector(".tab-content.active form");
-        form.reset();
-        localStorage.removeItem(`formData-${onramp}`);
-      }
-
-       window.sendOtp = function() {
-        const email = document.getElementById("otpEmail").value.trim();
-        const errorDiv = document.getElementById("otpError");
-
-        if (!email.endsWith("@onramper.com")) {
-            errorDiv.textContent = "Please use a valid @onramper.com email.";
-            return;
-        }
-
-        const otp = Math.floor(100000 + Math.random() * 900000); // 6-digit OTP
-        sessionStorage.setItem("otp", otp);
-        sessionStorage.setItem("email", email);
-
-        // Send to backend to trigger email via GAS
-        fetch("/api/send-otp", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ otp, recipientEmail: email, otpOnly: true })
-        })
-        .then(res => {
-            if (res.ok) {
-            showOtpPrompt();
-            } else {
-            errorDiv.textContent = "Failed to send OTP. Try again.";
-            }
-        })
-        .catch(() => {
-            errorDiv.textContent = "Network error.";
-        });
-    }
-
-    function showOtpPrompt() {
+      function showOtpPrompt() {
         Swal.fire({
-            title: 'Enter OTP',
-            input: 'text',
-            inputLabel: 'Check your inbox for a 6-digit code',
-            inputPlaceholder: 'Enter OTP',
-            confirmButtonText: 'Verify',
-            preConfirm: (inputOtp) => {
+          title: 'Enter OTP',
+          input: 'text',
+          inputLabel: 'Check your inbox for a 6-digit code',
+          inputPlaceholder: 'Enter OTP',
+          confirmButtonText: 'Verify',
+          preConfirm: (inputOtp) => {
             const realOtp = sessionStorage.getItem("otp");
             if (inputOtp !== realOtp) {
-                Swal.showValidationMessage('Invalid OTP. Please try again.');
-                return false;
+              Swal.showValidationMessage('Invalid OTP. Please try again.');
+              return false;
             }
             return true;
-            }
+          }
         }).then(result => {
-            if (result.isConfirmed) {
-            proceedWithFormSubmission(); // Final send
-            }
+          if (result.isConfirmed) {
+            window.proceedWithFormSubmission();
+          }
         });
-    }
-    window.proceedWithFormSubmission = function() {
-        const form = document.querySelector(".tab-content.active form");
-
-        const payload = {
-            onramp: currentOnramp,
-            clientName: currentFormData.get("clientName"),
-            clientType: currentFormData.get("clientType"),
-            clientAddress: currentFormData.get("clientAddress"),
-            clientWebsite: currentFormData.get("clientWebsite"),
-            recipientEmail: sessionStorage.getItem("email")
-        };
-
-        Swal.fire({
-            title: 'Submitting...',
-            allowOutsideClick: false,
-            didOpen: () => Swal.showLoading()
-        });
-
-        fetch("/api/forward-to-gas", {
-            method: "POST",
-            headers: {
-            "Content-Type": "application/json"
-            },
-            body: JSON.stringify(payload)
-        })
-        .then(response => {
-            if (response.ok) {
-            form.reset();
-            localStorage.removeItem(`formData-${currentOnramp}`);
-            Swal.fire('Success', `Request for ${currentOnramp} submitted successfully!`, 'success');
-            document.getElementById("otpModal").style.display = "none";
-            } else {
-            response.json().then(data => {
-                Swal.fire('Error', data.error || 'Unknown error', 'error');
-            }).catch(() => {
-                Swal.fire('Error', 'Unexpected response error.', 'error');
-            });
-            }
-        })
-        .catch(error => {
-            console.error("Webhook error:", error);
-            Swal.fire('Error', 'An error occurred. Please try again.', 'error');
-        });
-    }
+      }
 
       function saveForm(onramp) {
         const form = document.querySelector(".tab-content.active form");
@@ -254,6 +212,9 @@
       }, 1000);
 
       activateTab(0);
+
+      // Attach event to OTP button
+      document.getElementById("sendOtpButton").addEventListener("click", window.sendOtp);
     });
   </script>
 </body>
