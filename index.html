@@ -2,159 +2,208 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Onramper API Key Request</title>
-  <style>
-    :root {
-      --primary: #1b1f3b;
-      --secondary: #4a4e69;
-      --accent: #9a8c98;
-      --background: #f2e9e4;
-      --white: #ffffff;
-    }
-
-    * {
-      box-sizing: border-box;
-      font-family: Arial, sans-serif;
-    }
-
-    body {
-      margin: 0;
-      background-color: var(--background);
-      color: var(--primary);
-    }
-
-    header {
-      background: var(--primary);
-      color: var(--white);
-      padding: 1rem;
-      text-align: center;
-      font-size: 1.5rem;
-    }
-
-    .tabs {
-      display: flex;
-      flex-wrap: wrap;
-      background-color: var(--secondary);
-    }
-
-    .tabs button {
-      flex: 1;
-      padding: 1rem;
-      background: var(--secondary);
-      border: none;
-      color: var(--white);
-      cursor: pointer;
-      transition: background 0.3s;
-    }
-
-    .tabs button:hover, .tabs button.active {
-      background: var(--accent);
-    }
-
-    .tab-content {
-      display: none;
-      padding: 2rem;
-    }
-
-    .tab-content.active {
-      display: block;
-      background: var(--white);
-      border-radius: 8px;
-      max-width: 600px;
-      margin: 2rem auto;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-
-    form {
-      display: flex;
-      flex-direction: column;
-    }
-
-    label {
-      margin: 0.5rem 0 0.2rem;
-    }
-
-    input {
-      padding: 0.5rem;
-      border-radius: 4px;
-      border: 1px solid #ccc;
-    }
-
-    button.submit-btn {
-      margin-top: 1rem;
-      padding: 0.75rem;
-      background-color: var(--primary);
-      color: var(--white);
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-
-    button.submit-btn:hover {
-      background-color: var(--secondary);
-    }
-  </style>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
-  <header>Onramper API Key Request</header>
+  <header>
+    <img class="logo" src="/assets/logo-light.png" alt="Onramper Logo" />
+    <h1 class="title">Gambling API Key Request</h1>
+  </header>
+
   <div class="tabs" id="tab-buttons"></div>
   <div id="tab-contents"></div>
 
+    <!-- OTP Email Modal -->
+    <div id="otpModal" style="display:none; position: fixed; top: 0; left: 0;
+    width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); 
+    align-items: center; justify-content: center; z-index: 1000;">
+    <div style="background: white; padding: 2rem; border-radius: 8px; text-align: center; width: 300px;">
+        <h3>Verify Email</h3>
+        <p>Enter your @onramper.com email</p>
+        <input id="otpEmail" type="email" placeholder="you@onramper.com" style="width: 100%; padding: 0.5rem; margin: 0.5rem 0;">
+        <button onclick="sendOtp()" style="padding: 0.5rem 1rem;">Send OTP</button>
+        <div id="otpError" style="color: red; margin-top: 0.5rem;"></div>
+    </div>
+    </div>
+
   <script>
-    const onramps = [
-      "Btcdirect", "Coinify", "Onrampmoney", "Transfi", 
-      "Localramp", "Topper", "Koywe", "Moonpay", "Swapped"
-    ];
+    document.addEventListener("DOMContentLoaded", () => {
+      const onramps = [
+        "BTCDirect", "Coinify", "Koywe", "Localramp",
+        "Moonpay", "Onrampmoney", "Swapped", "Topper", "Transfi"
+      ].sort();
 
-    const tabButtons = document.getElementById("tab-buttons");
-    const tabContents = document.getElementById("tab-contents");
+      const tabButtons = document.getElementById("tab-buttons");
+      const tabContents = document.getElementById("tab-contents");
 
-    onramps.forEach((name, index) => {
-      const button = document.createElement("button");
-      button.innerText = name;
-      button.addEventListener("click", () => activateTab(index));
-      tabButtons.appendChild(button);
+      onramps.forEach((name, index) => {
+        const button = document.createElement("button");
+        button.innerText = name;
+        button.addEventListener("click", () => activateTab(index));
+        tabButtons.appendChild(button);
 
-      const content = document.createElement("div");
-      content.className = "tab-content";
-      content.innerHTML = `
-        <form onsubmit="event.preventDefault(); sendToWebhook('${name}');">
-          <label>Client Name</label>
-          <input name="clientName" required />
-          <label>Client Type</label>
-          <input name="clientType" required />
-          <label>Client Address</label>
-          <input name="clientAddress" required />
-          <label>Client Website</label>
-          <input name="clientWebsite" required />
-          <button class="submit-btn" type="submit">Request Key</button>
-        </form>
-      `;
-      tabContents.appendChild(content);
-    });
-
-    function activateTab(index) {
-      document.querySelectorAll(".tabs button").forEach((btn, i) => {
-        btn.classList.toggle("active", i === index);
+        const content = document.createElement("div");
+        content.className = "tab-content";
+        content.innerHTML = `
+          <form onsubmit="event.preventDefault(); sendToWebhook('${name}');">
+            <label>Client Name</label>
+            <input name="clientName" required />
+            <label>Client Type</label>
+            <input name="clientType" required />
+            <label>Client Address</label>
+            <input name="clientAddress" required />
+            <label>Client Website</label>
+            <input name="clientWebsite" required />
+            <div style="display: flex; justify-content: space-between;">
+              <button class="submit-btn" type="submit">Request Key</button>
+              <button type="button" class="submit-btn" onclick="clearForm('${name}')">Clear All</button>
+            </div>
+          </form>
+        `;
+        tabContents.appendChild(content);
       });
-      document.querySelectorAll(".tab-content").forEach((tab, i) => {
-        tab.classList.toggle("active", i === index);
-      });
-    }
 
-    function sendToWebhook(onramp) {
+      function activateTab(index) {
+        document.querySelectorAll(".tabs button").forEach((btn, i) => {
+          btn.classList.toggle("active", i === index);
+        });
+        document.querySelectorAll(".tab-content").forEach((tab, i) => {
+          tab.classList.toggle("active", i === index);
+          if (i === index) restoreForm(onramps[i]);
+        });
+      }
+
+        let currentOnramp = null;
+        let currentFormData = null;
+
+      window.sendToWebhook = function (onramp) {
         const form = document.querySelector(".tab-content.active form");
         const formData = new FormData(form);
 
         const payload = {
-            onramp,
-            clientName: formData.get("clientName"),
-            clientType: formData.get("clientType"),
-            clientAddress: formData.get("clientAddress"),
-            clientWebsite: formData.get("clientWebsite"),
-            recipientEmail: "mark.weerasinghe@onramper.com"
+          onramp,
+          clientName: formData.get("clientName"),
+          clientType: formData.get("clientType"),
+          clientAddress: formData.get("clientAddress"),
+          clientWebsite: formData.get("clientWebsite"),
+          recipientEmail: "mark.weerasinghe@onramper.com"
         };
+
+        document.getElementById("otpModal").style.display = "flex";
+
+        /*
+       localStorage.removeItem(`formData-${onramp}`);
+
+        Swal.fire({
+          title: 'Submitting...',
+          allowOutsideClick: false,
+          didOpen: () => Swal.showLoading()
+        });
+
+        fetch("/api/forward-to-gas", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(payload)
+        })
+        .then(response => {
+          if (response.ok) {
+            form.reset();
+            Swal.fire('Success', `Request for ${onramp} submitted successfully!`, 'success');
+          } else {
+            response.json().then(data => {
+              Swal.fire('Error', data.error || 'Unknown error', 'error');
+            }).catch(() => {
+              Swal.fire('Error', 'Unexpected response error.', 'error');
+            });
+          }
+        })
+        .catch(error => {
+          console.error("Webhook error:", error);
+          Swal.fire('Error', 'An error occurred. Please try again.', 'error');
+        });
+        */
+      };
+
+      window.clearForm = function (onramp) {
+        const form = document.querySelector(".tab-content.active form");
+        form.reset();
+        localStorage.removeItem(`formData-${onramp}`);
+      }
+
+      function sendOtp() {
+        const email = document.getElementById("otpEmail").value.trim();
+        const errorDiv = document.getElementById("otpError");
+
+        if (!email.endsWith("@onramper.com")) {
+            errorDiv.textContent = "Please use a valid @onramper.com email.";
+            return;
+        }
+
+        const otp = Math.floor(100000 + Math.random() * 900000); // 6-digit OTP
+        sessionStorage.setItem("otp", otp);
+        sessionStorage.setItem("email", email);
+
+        // Send to backend to trigger email via GAS
+        fetch("/api/send-otp", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ otp, recipientEmail: email, otpOnly: true })
+        })
+        .then(res => {
+            if (res.ok) {
+            showOtpPrompt();
+            } else {
+            errorDiv.textContent = "Failed to send OTP. Try again.";
+            }
+        })
+        .catch(() => {
+            errorDiv.textContent = "Network error.";
+        });
+    }
+
+    function showOtpPrompt() {
+        Swal.fire({
+            title: 'Enter OTP',
+            input: 'text',
+            inputLabel: 'Check your inbox for a 6-digit code',
+            inputPlaceholder: 'Enter OTP',
+            confirmButtonText: 'Verify',
+            preConfirm: (inputOtp) => {
+            const realOtp = sessionStorage.getItem("otp");
+            if (inputOtp !== realOtp) {
+                Swal.showValidationMessage('Invalid OTP. Please try again.');
+                return false;
+            }
+            return true;
+            }
+        }).then(result => {
+            if (result.isConfirmed) {
+            proceedWithFormSubmission(); // Final send
+            }
+        });
+    }
+    function proceedWithFormSubmission() {
+        const form = document.querySelector(".tab-content.active form");
+
+        const payload = {
+            onramp: currentOnramp,
+            clientName: currentFormData.get("clientName"),
+            clientType: currentFormData.get("clientType"),
+            clientAddress: currentFormData.get("clientAddress"),
+            clientWebsite: currentFormData.get("clientWebsite"),
+            recipientEmail: sessionStorage.getItem("email")
+        };
+
+        Swal.fire({
+            title: 'Submitting...',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading()
+        });
 
         fetch("/api/forward-to-gas", {
             method: "POST",
@@ -165,21 +214,47 @@
         })
         .then(response => {
             if (response.ok) {
-            alert(`Request for ${onramp} submitted successfully!`);
+            form.reset();
+            localStorage.removeItem(`formData-${currentOnramp}`);
+            Swal.fire('Success', `Request for ${currentOnramp} submitted successfully!`, 'success');
+            document.getElementById("otpModal").style.display = "none";
             } else {
             response.json().then(data => {
-                alert(`Failed: ${data.error || 'Unknown error'}`);
+                Swal.fire('Error', data.error || 'Unknown error', 'error');
+            }).catch(() => {
+                Swal.fire('Error', 'Unexpected response error.', 'error');
             });
             }
         })
         .catch(error => {
             console.error("Webhook error:", error);
-            alert("An error occurred. Please try again.");
+            Swal.fire('Error', 'An error occurred. Please try again.', 'error');
         });
     }
 
-    // Activate first tab by default
-    activateTab(0);
+      function saveForm(onramp) {
+        const form = document.querySelector(".tab-content.active form");
+        const data = {};
+        new FormData(form).forEach((value, key) => data[key] = value);
+        localStorage.setItem(`formData-${onramp}`, JSON.stringify(data));
+      }
+
+      function restoreForm(onramp) {
+        const data = JSON.parse(localStorage.getItem(`formData-${onramp}`) || '{}');
+        const form = document.querySelector(".tab-content.active form");
+        Object.entries(data).forEach(([key, val]) => {
+          const input = form.querySelector(`[name="${key}"]`);
+          if (input) input.value = val;
+        });
+      }
+
+      setInterval(() => {
+        const currentTab = document.querySelector(".tabs button.active");
+        if (currentTab) saveForm(currentTab.innerText);
+      }, 1000);
+
+      activateTab(0);
+    });
   </script>
 </body>
 </html>
