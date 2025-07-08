@@ -1,5 +1,5 @@
 export default async function handler(req, res) {
-   // Enable CORS for your frontend domain
+  // Enable CORS for your frontend domain
   res.setHeader("Access-Control-Allow-Origin", "https://gambling-key-request.vercel.app");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -13,28 +13,48 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method Not Allowed" });
   }
 
- // Parse JSON body explicitly (if not parsed by default)
+  // Parse body safely
   let payload;
   try {
-    payload = req.body;
-    // If req.body is a string (not parsed), parse it:
-    if (typeof payload === "string") {
-      payload = JSON.parse(payload);
-    }
+    payload = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
   } catch (e) {
     console.error("Error parsing request body:", e);
     return res.status(400).json({ error: "Invalid JSON in request body" });
   }
-  
+
+  // Email mapping per onramp
+  const onrampEmailMap = {
+    BTCDirect: "mark.weerasinghe+btc@onramper.com",
+    Coinify: "support@coinify.com",
+    Koywe: "support@koywe.com",
+    Localramp: "support@localramp.com",
+    Moonpay: "support@moonpay.com",
+    Onrampmoney: "support@onrampmoney.com",
+    Swapped: "support@swapped.com",
+    Topper: "support@topper.com",
+    Transfi: "support@transfi.com"
+  };
+
+  const { onramp } = payload;
+  const recipientEmail = onrampEmailMap[onramp];
+
+  if (!recipientEmail) {
+    return res.status(400).json({ error: `Unknown onramp: ${onramp}` });
+  }
+
+  // Add recipientEmail to payload before sending to GAS
+  const updatedPayload = {
+    ...payload,
+    recipientEmail
+  };
+
   const targetUrl = "https://script.google.com/macros/s/AKfycbx_io7IFLs3RfW09-9wMuN8SsSfXbjwrCJekpatOZwQEtzaAG6784FtZJOjK7xY-OfI0Q/exec";
 
   try {
     const gasResponse = await fetch(targetUrl, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(payload)
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updatedPayload)
     });
 
     if (!gasResponse.ok) {
