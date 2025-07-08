@@ -13,7 +13,19 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method Not Allowed" });
   }
 
-  const payload = req.body;
+ // Parse JSON body explicitly (if not parsed by default)
+  let payload;
+  try {
+    payload = req.body;
+    // If req.body is a string (not parsed), parse it:
+    if (typeof payload === "string") {
+      payload = JSON.parse(payload);
+    }
+  } catch (e) {
+    console.error("Error parsing request body:", e);
+    return res.status(400).json({ error: "Invalid JSON in request body" });
+  }
+  
   const targetUrl = "https://script.google.com/macros/s/AKfycbx_io7IFLs3RfW09-9wMuN8SsSfXbjwrCJekpatOZwQEtzaAG6784FtZJOjK7xY-OfI0Q/exec";
 
   try {
